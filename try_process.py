@@ -13,23 +13,20 @@ import geopandas as gpd
 import utils
 import shadow
 import plot as pl
+import settings
 
 
 
 
 
-#hello
-# Shadow penalty factor
-shadow_penalty_factor = 0.5
 
-# Define the location and time
-location = Location(latitude=31.261, longitude=34.802)
-time = datetime(2024, 11, 27, 14, 30)  # Example time (noon)
-solar_position = location.get_solarposition(time)
+
+
+
 
 # Extract solar azimuth and altitude
-azimuth = solar_position['azimuth']
-altitude = solar_position['apparent_elevation']
+azimuth = settings.solar_position['azimuth']
+altitude = settings.solar_position['apparent_elevation']
 
 # Initialize Graph and Buildings (assuming pl module has these)
 G = pl.G
@@ -133,7 +130,7 @@ print(edges_shadow_weight)
 
 for (u, v, key, data), shadow_weight in zip(G.edges(keys=True, data=True), edges_shadow_weight):
     data['shadow_weight'] = shadow_weight
-    data['total_weight'] = data['length'] + shadow_weight * shadow_penalty_factor
+    data['total_weight'] = data['length'] + shadow_weight * settings.shadow_penalty_factor
 
 
 # # Add a custom weight attribute (e.g., shadow factor)
