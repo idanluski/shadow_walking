@@ -18,7 +18,7 @@ import plot as pl
 
 
 
-
+#hello
 # Shadow penalty factor
 shadow_penalty_factor = 0.5
 
