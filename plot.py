@@ -4,7 +4,10 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import re
 import pandas as pd
+from shapely.geometry import MultiPolygon, Polygon, LineString
+import geopandas as gpd
 
+ox.settings.use_cache = False
 # Define the location and time
 location = Location(latitude=31.261, longitude=34.802)
 time = datetime(2024, 11, 27, 14, 30)  # Example time (noon)
@@ -19,6 +22,8 @@ custom_filter = '["highway"~"footway|path|pedestrian|sidewalk|cycleway|living_st
 
 # Extract graph and geometries
 G = ox.graph_from_place(place_name, network_type="walk", custom_filter=custom_filter)
+G = ox.project_graph(G, to_crs='EPSG:32636')
+
 buildings = ox.geometries_from_place(place_name, tags={"building": True})
 
 # Define combined bounds for full coverage
@@ -124,8 +129,51 @@ def plot_graph_with_numeric_addresses(G, buildings, custom_bounds=None):
     plt.ylabel("Latitude")
     plt.show()
 
+
+def analyze_and_plot_coverage(G, buildings, custom_bounds=None):
+    # Step 1: Create a MultiPolygon for all shadow geometries
+    all_shadows = MultiPolygon([shadow for shadow in buildings['shadow_geometry'] if shadow is not None])
+
+    # Step 2: Plot all the shadows, paths, and buildings with numeric addresses
+    fig, ax = plt.subplots(figsize=(14, 14))
+
+    # Plot the roads graph using osmnx
+    ox.plot_graph(G, ax=ax, show=False, close=False, edge_color='gray', edge_linewidth=0.5)
+
+    # Plot all shadows on top of roads
+    shadows_gdf = gpd.GeoSeries(all_shadows)
+    shadows_gdf.plot(ax=ax, color='darkgrey', alpha=0.7, label='Shadows')
+
+    # Plot buildings
+    buildings.plot(ax=ax, color='orange', alpha=0.7, edgecolor='black')
+
+    # Adding numeric house number labels to buildings if available
+    for idx, building in buildings.iterrows():
+        housenumber = building.get('addr:housenumber', None)
+
+        if pd.notna(housenumber):
+            # Extract only the numeric part of the house number
+            numeric_housenumber = ''.join(re.findall(r'\d+', str(housenumber)))
+
+            if numeric_housenumber:  # Only label if a numeric part exists
+                centroid = building.geometry.centroid
+                ax.text(centroid.x, centroid.y, numeric_housenumber, fontsize=8, color='black', alpha=0.9, ha='center')
+
+    # Apply custom bounds if provided
+    if custom_bounds:
+        ax.set_xlim([custom_bounds[0], custom_bounds[2]])
+        ax.set_ylim([custom_bounds[1], custom_bounds[3]])
+
+    # Add legend and labels
+    ax.set_title('Buildings, Shadows, and Paths at Ben Gurion University with Numeric House Numbers')
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.legend()
+    plt.show()
+
+
 # Plotting
-plot_graph_with_numeric_addresses(G, buildings, custom_bounds=combined_bounds)
-plot_graph(G, buildings, custom_bounds=combined_bounds)
-pedestrian(place_name)
-plot_roads_as_graph(G, custom_bounds=combined_bounds)
+#plot_graph_with_numeric_addresses(G, buildings, custom_bounds=combined_bounds)
+#plot_graph(G, buildings, custom_bounds=combined_bounds)
+#pedestrian(place_name)
+#plot_roads_as_graph(G, custom_bounds=combined_bounds)

@@ -14,16 +14,13 @@ import utils
 import shadow
 import plot as pl
 import settings
+import re
 
 
 
 
 
-
-
-
-
-
+#ox.settings.use_cache = False
 # Extract solar azimuth and altitude
 azimuth = settings.solar_position['azimuth']
 altitude = settings.solar_position['apparent_elevation']
@@ -61,7 +58,7 @@ print(buildings[['height', 'geometry']])
 # Convert geometry column to GeoDataFrame format if needed
 shadow.convert_geodata(buildings)
 
-buildings['shadow_geometry'] = buildings.apply(lambda b: shadow.project_shadow(b, azimuth, altitude), axis=1)
+buildings['shadow_geometry'] = buildings.apply(lambda b: shadow.generate_distorted_shadow(b, azimuth, altitude), axis=1)
 
 buildings_with_only_shadows = buildings.copy()
 buildings_with_only_shadows['shadow_only_geometry'] = buildings_with_only_shadows.apply(
@@ -79,6 +76,18 @@ fig, ax = plt.subplots(figsize=(12, 10))
 # Plot original buildings in blue
 buildings.plot(ax=ax, color='blue', alpha=0.5, edgecolor='k', label='Original Buildings')
 
+
+# Adding numeric house number labels to buildings if available
+for idx, building in buildings.iterrows():
+    height = building.get('height', None)
+
+    if pd.notna(height):
+        # Extract only the numeric part of the house number
+        height = ''.join(re.findall(r'\d+', str(height)))
+
+        if height:  # Only label if a numeric part exists
+            centroid = building.geometry.centroid
+            ax.text(centroid.x, centroid.y, height, fontsize=8, color='black', alpha=0.9, ha='center')
 # Plot only the shadow areas in red with increased transparency
 shadow_gdf = gpd.GeoDataFrame(buildings, geometry='shadow_geometry')
 shadow_gdf.plot(ax=ax, color='red', alpha=0.3, edgecolor='r', label='Shadows Only')
@@ -96,41 +105,44 @@ plt.show()
 
 
 
+print("-------------------------------------------------")
+
+utils.analyze_and_plot_coverage(G, shadow_gdf,pl.combined_bounds)
+
+pl.analyze_and_plot_coverage(G,buildings,pl.combined_bounds)
 
 
 
 
-
-
-pl.after_shadow(buildings)
-# Debug: Print buildings with calculated shadow geometries
-print("\nBuildings with Shadow Geometry:")
-print(buildings[['shadow_geometry']])
+# pl.after_shadow(buildings)
+# # Debug: Print buildings with calculated shadow geometries
+# print("\nBuildings with Shadow Geometry:")
+# print(buildings[['shadow_geometry']])
 
 # Calculate shadow weight for each edge in graph G
-edges_shadow_weight = []
-for edge in G.edges(data=True):
-    try:
-        shadow_weight = shadow.calculate_shadow_weight(edge, buildings)
-        edges_shadow_weight.append(shadow_weight)
+# edges_shadow_weight = []
+# for edge in G.edges(data=True):
+#     try:
+#         shadow_weight = shadow.calculate_shadow_weight(edge, buildings)
+#         edges_shadow_weight.append(shadow_weight)
         
-        # Debugging each edge's shadow weight calculation
-        print(f"\nEdge: {edge}, Shadow Weight: {shadow_weight}")
-    except Exception as e:
-        print(f"Error calculating shadow weight for edge {edge}: {e}")
-        edges_shadow_weight.append(None)  # Append None for problematic edges
+#         # Debugging each edge's shadow weight calculation
+#         print(f"\nEdge: {edge}, Shadow Weight: {shadow_weight}")
+#     except Exception as e:
+#         print(f"Error calculating shadow weight for edge {edge}: {e}")
+#         edges_shadow_weight.append(None)  # Append None for problematic edges
 
-# Debug: Final shadow weight results
-print("\nFinal Shadow Weights for Edges:")
-print(edges_shadow_weight)
+# # Debug: Final shadow weight results
+# print("\nFinal Shadow Weights for Edges:")
+# print(edges_shadow_weight)
 
 
 
 # edges_shadow_weight = [shadow.calculate_shadow_weight(edge, buildings) for edge in G.edges(data=True)]
 
-for (u, v, key, data), shadow_weight in zip(G.edges(keys=True, data=True), edges_shadow_weight):
-    data['shadow_weight'] = shadow_weight
-    data['total_weight'] = data['length'] + shadow_weight * settings.shadow_penalty_factor
+# for (u, v, key, data), shadow_weight in zip(G.edges(keys=True, data=True), edges_shadow_weight):
+#     data['shadow_weight'] = shadow_weight
+#     data['total_weight'] = data['length'] + shadow_weight * settings.shadow_penalty_factor
 
 
 # # Add a custom weight attribute (e.g., shadow factor)
@@ -142,14 +154,14 @@ for (u, v, key, data), shadow_weight in zip(G.edges(keys=True, data=True), edges
 # for u, v, data in G.edges(data=True):
 #     data["weight"] = data.get("length", 1)  # use 'length' as the default weight
 
-for u, v, data in G.edges(data=True):
-    print(f"Edge from {u} to {v}:")
+# for u, v, data in G.edges(data=True):
+#     print(f"Edge from {u} to {v}:")
 
 
 
-fig, ax = plt.subplots()
-buildings.plot(ax=ax, color='gray', alpha=0.5)
-ox.plot_graph(G, ax=ax)
+# fig, ax = plt.subplots()
+# buildings.plot(ax=ax, color='gray', alpha=0.5)
+# ox.plot_graph(G, ax=ax)
 # ox.plot_graph(G)
 # # Choose two nodes in the graph
 # origin_node = list(G.nodes)[0]

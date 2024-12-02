@@ -5,6 +5,11 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 from shapely.affinity import scale, rotate
+from shapely.affinity import scale, rotate, translate
+from shapely.validation import make_valid
+import numpy as np
+import shapely.errors
+
 
 def calculate_shadow_weight(edge, shadows):
     edge_geom = edge['geometry']
@@ -63,6 +68,9 @@ def generate_distorted_shadow(building, azimuth, altitude):
     height = float(building['height'])  # Use building height in meters
     footprint = building['geometry']  # Original building footprint
 
+    # Inflate the building footprint slightly to ensure overlap with shadow
+    inflated_footprint = footprint.buffer(0.5)  # Inflate by 0.5 meters
+
     # Extract scalar values
     altitude_value = altitude.values[0] if isinstance(altitude, pd.Series) else altitude
     azimuth = azimuth.iloc[0] if isinstance(azimuth, pd.Series) else azimuth
@@ -101,7 +109,7 @@ def generate_distorted_shadow(building, azimuth, altitude):
                 stretch_factor = 0.5 + (projection / (2 * height))  # Scale down the stretch factor
                 displacement = shadow_vector * stretch_factor
             else:  # Vertices closer to the shadow base
-                displacement = shadow_vector * 0.1  # Minimal displacement for near-side vertices
+                displacement = shadow_vector * 0.2  # Increase displacement for near-side vertices
 
             # Apply the displacement to the vertex
             new_x = x + displacement[0]
@@ -111,16 +119,31 @@ def generate_distorted_shadow(building, azimuth, altitude):
         # Create a new polygon for the shadow
         shadow_polygon = Polygon(distorted_coords)
 
-        # Combine the building footprint and the shadow to fill gaps
-        combined_polygon = unary_union([footprint, shadow_polygon])
+        # Buffer the shadow polygon slightly to ensure overlap
+        buffered_shadow = shadow_polygon.buffer(0.5)
 
+        # Combine the inflated building footprint and the buffered shadow to fill gaps
+        combined_polygon = unary_union([inflated_footprint, buffered_shadow])
+
+        # Print information for debugging or verification
         print(f"Building Height: {height}, Altitude: {altitude_value}, Shadow Length: {shadow_length}")
         print(f"Azimuth: {azimuth}, Shadow Vector: {shadow_vector}")
 
-        return combined_polygon
+        if isinstance(combined_polygon, Polygon):
+            # Create a new Polygon without holes
+            filled_polygon = Polygon(combined_polygon.exterior)
+        elif combined_polygon.geom_type == 'MultiPolygon':
+            # If there are multiple polygons, iterate and remove holes from each
+            filled_polygons = []
+            for poly in combined_polygon:
+                filled_polygons.append(Polygon(poly.exterior))
+            filled_polygon = gpd.GeoSeries(filled_polygons).unary_union
+        return filled_polygon
     else:
         raise ValueError(f"Invalid geometry type for footprint: {type(footprint)}")
 
+    
+    
 def convert_geodata(building):
     return gpd.GeoDataFrame(building)
 
@@ -131,3 +154,6 @@ def create_shadow_polygon(building, dx, dy):
     exterior_coords = list(building.exterior.coords)
     shadow_coords = [(x + dx, y + dy) for x, y in exterior_coords]
     return Polygon(shadow_coords)
+
+
+
