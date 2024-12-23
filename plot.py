@@ -10,7 +10,7 @@ import geopandas as gpd
 ox.settings.use_cache = False
 # Define the location and time
 location = Location(latitude=31.261, longitude=34.802)
-time = datetime(2024, 11, 27, 14, 30)  # Example time (noon)
+time = datetime(2024, 12, 13, 10, 30)  # Example time (noon)
 solar_position = location.get_solarposition(time)
 
 # Extract solar azimuth and altitude
@@ -18,10 +18,12 @@ azimuth = solar_position['azimuth']
 altitude = solar_position['apparent_elevation']
 
 place_name = "Ben Gurion University, Beer Sheva, Israel"
-custom_filter = '["highway"~"footway|path|pedestrian|sidewalk|cycleway|living_street|service|unclassified|residential|tertiary|road"]'
+custom_filter = '["highway"~"footway|path|pedestrian|sidewalk|cycleway|living_street|service|unclassified|residential|tertiary|road|steps"]'
+#custom_filter = '["highway"~"footway|path|pedestrian|sidewalk|cycleway|living_street|service|unclassified|residential|tertiary|road|steps"]["service"~"parking_aisle|road"]'
+
 
 # Extract graph and geometries
-G = ox.graph_from_place(place_name, network_type="walk", custom_filter=custom_filter)
+G = ox.graph_from_place(place_name, network_type="walk", custom_filter=custom_filter, retain_all=True)
 G = ox.project_graph(G, to_crs='EPSG:32636')
 
 buildings = ox.geometries_from_place(place_name, tags={"building": True})
@@ -159,10 +161,19 @@ def analyze_and_plot_coverage(G, buildings, custom_bounds=None):
                 centroid = building.geometry.centroid
                 ax.text(centroid.x, centroid.y, numeric_housenumber, fontsize=8, color='black', alpha=0.9, ha='center')
 
-    # Apply custom bounds if provided
-    if custom_bounds:
-        ax.set_xlim([custom_bounds[0], custom_bounds[2]])
-        ax.set_ylim([custom_bounds[1], custom_bounds[3]])
+      
+    x_min, x_max = ax.get_xlim()
+    y_min, y_max = ax.get_ylim()
+
+    # Add a margin to zoom out (e.g., 10% margin)
+    margin = 0.1  # 10% margin
+    x_margin = (x_max - x_min) * margin
+    y_margin = (y_max - y_min) * margin
+
+    # Set new limits with the added margin
+    ax.set_xlim(x_min - x_margin, x_max + x_margin)
+    ax.set_ylim(y_min - y_margin, y_max + y_margin)
+
 
     # Add legend and labels
     ax.set_title('Buildings, Shadows, and Paths at Ben Gurion University with Numeric House Numbers')

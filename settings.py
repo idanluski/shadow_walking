@@ -16,7 +16,7 @@ longitude = 34.802
 location = pvlib.location.Location(latitude, longitude, tz='Asia/Jerusalem')
 
 # Set the time with the correct timezone
-time = datetime(2024, 12, 2,13, 00, tzinfo=pytz.timezone('Asia/Jerusalem'))
+time = datetime(2024, 12, 9,10, 17, tzinfo=pytz.timezone('Asia/Jerusalem'))
 
 # Get the solar position at the specified time and location
 solar_position = location.get_solarposition(time)

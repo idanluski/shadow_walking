@@ -27,10 +27,13 @@ altitude = settings.solar_position['apparent_elevation']
 
 # Initialize Graph and Buildings (assuming pl module has these)
 G = pl.G
+G = ox.project_graph(G, to_crs='EPSG:32636')
 buildings = pl.buildings
 
 # Calculate height for buildings and check building levels
 utils.calculate_high(buildings)
+utils.handel_bad_path(G)
+
 print("\nBuilding Levels:")
 print(buildings['levels'])
 print(buildings.crs)
@@ -58,9 +61,12 @@ print(buildings[['height', 'geometry']])
 # Convert geometry column to GeoDataFrame format if needed
 shadow.convert_geodata(buildings)
 
+
+buildings = buildings.to_crs(epsg=32636)
 buildings['shadow_geometry'] = buildings.apply(lambda b: shadow.generate_distorted_shadow(b, azimuth, altitude), axis=1)
 
 buildings_with_only_shadows = buildings.copy()
+buildings_with_only_shadows = buildings_with_only_shadows.to_crs(epsg=32636)
 buildings_with_only_shadows['shadow_only_geometry'] = buildings_with_only_shadows.apply(
     lambda row: row['shadow_geometry'].difference(row['geometry']) if row['shadow_geometry'] is not None else None,
     axis=1
@@ -91,6 +97,11 @@ for idx, building in buildings.iterrows():
 # Plot only the shadow areas in red with increased transparency
 shadow_gdf = gpd.GeoDataFrame(buildings, geometry='shadow_geometry')
 shadow_gdf.plot(ax=ax, color='red', alpha=0.3, edgecolor='r', label='Shadows Only')
+# Set the initial CRS (replace 'EPSG:4326' with your known CRS if different)
+shadow_gdf = shadow_gdf.set_crs(epsg=32636)
+
+# Now you can convert to your target CRS
+shadow_gdf = shadow_gdf.to_crs(epsg=32636)
 
 # Add legend, title, and labels for better interpretation
 plt.legend()
@@ -106,8 +117,9 @@ plt.show()
 
 
 print("-------------------------------------------------")
-
-utils.analyze_and_plot_coverage(G, shadow_gdf,pl.combined_bounds)
+#edges = ox.graph_to_gdfs(G, nodes=False, edges=True)
+#utils.analyze_coverage_gdf(edges, shadow_gdf,pl.combined_bounds)
+utils.analyze_coverage(G, shadow_gdf, buildings, pl.combined_bounds)
 
 pl.analyze_and_plot_coverage(G,buildings,pl.combined_bounds)
 

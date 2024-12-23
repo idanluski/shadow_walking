@@ -65,6 +65,9 @@ def generate_distorted_shadow(building, azimuth, altitude):
     Generate a realistically distorted shadow for a building polygon based on sun altitude and azimuth.
     Includes the union of the building and shadow to fill gaps.
     """
+
+    
+
     height = float(building['height'])  # Use building height in meters
     footprint = building['geometry']  # Original building footprint
 
