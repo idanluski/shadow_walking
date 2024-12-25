@@ -10,6 +10,7 @@ class Open_Street_Map:
         place_name = "Ben Gurion University, Beer Sheva, Israel"
         custom_filter = '["highway"~"footway|path|pedestrian|sidewalk|cycleway|living_street|service|unclassified|residential|tertiary|road|steps"]'
         self.crs = 'EPSG:32636'
+        ox.settings.use_cache = False
         #G = pl.G
         G = ox.graph_from_place(place_name, network_type="walk", custom_filter=custom_filter, retain_all=True)
         G = ox.project_graph(G, to_crs=self.crs)

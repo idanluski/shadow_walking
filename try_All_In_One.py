@@ -1,5 +1,4 @@
 import geopandas as gpd
-import settings
 from SunLocation import SunLocation
 from Open_Street_Map import Open_Street_Map
 from Class_Shadow import Class_Shadow

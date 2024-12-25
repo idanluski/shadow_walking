@@ -10,7 +10,7 @@ TIME_ZONE = 'Asia/Jerusalem'
 YEAR = 2024
 MONTH = 12
 DAY = 9
-HOUR = 14
+HOUR = 15
 MINUTE = 0
 
 
@@ -38,11 +38,12 @@ class SunLocation():
 
     def __init__(self) -> None:
         self.location = Location(LATITUDE,LONGITUDE,TIME_ZONE)
-        self.azimuth= None
-        self.sunset = None
-        # Get the solar position at the specified time and location
         self.solar_position = self.location.location_obj.get_solarposition(self.location.time)    
 
+        self.azimuth= self.solar_position['azimuth']
+        self.altitude = self.solar_position['apparent_elevation']
+        # Get the solar position at the specified time and location
+       
 
 
     def is_sunset():
