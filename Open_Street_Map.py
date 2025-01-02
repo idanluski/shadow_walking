@@ -1,7 +1,7 @@
 
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 import osmnx as ox
 
 
@@ -20,6 +20,7 @@ class Open_Street_Map:
         self.handel_bad_path()
         self.buildings_with_only_shadows = None
         self.combined_bounds = self.combine()
+        self.buildings_gdf = self.convert_geodata()
 
     def combine(self):
         # Define combined bounds for full coverage
@@ -84,3 +85,46 @@ class Open_Street_Map:
 
         # Replace NaN values in height with 0
         self.Buildings['height'] = self.Buildings['height'].fillna(0)
+
+    def get_nearest_node(self, x, y):
+         return ox.distance.nearest_nodes(self.G, X=x, Y=y)
+
+    def graph_to_gdfs(self):
+        nodes_gdf, edges_gdf = ox.graph_to_gdfs(self.G, nodes=True, edges=True)
+        return nodes_gdf, edges_gdf
+
+    def plot_route_folium(self, route_nodes, weight=5, color='blue' ):
+        return ox.plot_route_folium(self.G, route_nodes, weight=weight, color=color)
+
+    def find_nodes_in_G(self, dest, original):
+        """
+         take 2 point from GPS and fines the nearest node in G
+         input : tuple contain (lat,lng)
+        """
+
+        # origin_latlng = (31.2622, 34.8007)
+        # dest_latlng   = (31.2615, 34.7991)
+        origin_latlng = original
+        dest_latlng = dest
+
+        # In OSMnx, the graph is projected, but the function nearest_nodes()
+        # expects x=longitude, y=latitude in the graph’s coordinate system.
+        # For a projected graph, we need to first transform our lat/lng to EPSG:32636.
+
+        # Let's create a tiny GeoDataFrame with our origin/destination in WGS84:
+
+        coords_gdf = gpd.GeoDataFrame(
+            geometry=[Point(origin_latlng[1], origin_latlng[0]),  # (lon, lat)
+                      Point(dest_latlng[1], dest_latlng[0])],
+            crs="EPSG:4326"
+        )
+        # Reproject to EPSG:32636
+        coords_gdf_32636 = coords_gdf.to_crs(epsg=32636)
+        # Extract x, y
+        origin_x_32636, origin_y_32636 = coords_gdf_32636.geometry.iloc[0].x, coords_gdf_32636.geometry.iloc[0].y
+        dest_x_32636, dest_y_32636 = coords_gdf_32636.geometry.iloc[1].x, coords_gdf_32636.geometry.iloc[1].y
+
+        # Now find nearest nodes in the projected graph
+        orig_node_32636 = self.get_nearest_node(x=origin_x_32636, y=origin_y_32636)
+        dest_node_32636 = self.get_nearest_node(x=dest_x_32636, y=dest_y_32636)
+        return orig_node_32636, dest_node_32636

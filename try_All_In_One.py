@@ -2,6 +2,7 @@ import geopandas as gpd
 from SunLocation import SunLocation
 from Open_Street_Map import Open_Street_Map
 from Class_Shadow import Class_Shadow
+from Algorithmica import Algorithmic
 
 PLOT = True
 sunloc = SunLocation()
@@ -33,8 +34,6 @@ osm_object.Buildings['height'] = osm_object.Buildings['height'].fillna(0)
 print("\nBuildings with Updated Heights:")
 print(osm_object.Buildings[['height', 'geometry']])
 
-# Convert geometry column to GeoDataFrame format if needed
-Class_Shadow.convert_geodata(osm_object.Buildings)
 
 # buildings = osm_object.Buildings.to_crs(epsg=32636)
 osm_object.Buildings['shadow_geometry'] = osm_object.Buildings.apply(lambda b: Class_Shadow.generate_distorted_shadow(b, azimuth, altitude), axis=1)
@@ -59,3 +58,9 @@ print("-------------------------------------------------")
 
 Class_Shadow.analyze_coverage(osm_object.G, shadow_gdf, osm_object.Buildings, osm_object.combined_bounds)
 Class_Shadow.analyze_and_plot_coverage(osm_object.G, osm_object.Buildings, osm_object.combined_bounds)
+
+
+origin_latlng = (31.2622, 34.8007)
+dest_latlng   = (31.2615, 34.7991)
+algo = Algorithmic(osm_object)
+algo.shortest_path_near_bgu_with_buildings(dest_latlng, origin_latlng)

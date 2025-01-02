@@ -10,13 +10,13 @@ TIME_ZONE = 'Asia/Jerusalem'
 YEAR = 2024
 MONTH = 12
 DAY = 9
-HOUR = 15
+HOUR = 14
 MINUTE = 0
 
 
-class Location():
+class Location:
 
-    def __init__(self, latitude,longitude, tz) -> None:
+    def __init__(self, latitude, longitude, tz) -> None:
         # Location of Ben Gurion University
         self.latitude = latitude
         self.longitude = longitude
@@ -28,23 +28,20 @@ class Location():
 
     def make_location(self):
         """Set the location using pvlib's Location class and specify the timezone"""
-        location = pvlib.location.Location(self.latitude, self.longitude, tz= self.time_zone)
+        location = pvlib.location.Location(self.latitude, self.longitude, tz=self.time_zone)
         return location
     
 
-
-
-class SunLocation():
+class SunLocation:
 
     def __init__(self) -> None:
         self.location = Location(LATITUDE,LONGITUDE,TIME_ZONE)
-        self.solar_position = self.location.location_obj.get_solarposition(self.location.time)    
 
-        self.azimuth= self.solar_position['azimuth']
-        self.altitude = self.solar_position['apparent_elevation']
         # Get the solar position at the specified time and location
-       
+        self.solar_position = self.location.location_obj.get_solarposition(self.location.time)
+        self.azimuth = self.solar_position['azimuth']
+        self.altitude = self.solar_position['apparent_elevation']
 
 
-    def is_sunset():
+    def is_sunset(self):
         pass   

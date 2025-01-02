@@ -315,7 +315,19 @@ class Class_Shadow:
         if plot:
             plt.show()
 
+
     @staticmethod
-    def convert_geodata(building):
-        return gpd.GeoDataFrame(building)
+    def make_new_weights(G):
+        delta = [1, 2, 3, 4]
+        for u, v, key, edge in G.edges(keys=True, data=True):
+            coverage = edge.get('shadow_coverage', 0)
+            path = edge.get('geometry')
+            total_path_length = path.length
+            distance_shadow = (coverage * total_path_length) / 100
+            for d in delta:
+                new_distance_shadow = distance_shadow / d
+                d_name = f"cost_{d}"
+                distance_sun = total_path_length - distance_shadow
+                G[u][v][key][d_name] = distance_sun + new_distance_shadow
+
 
