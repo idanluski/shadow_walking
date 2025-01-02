@@ -56,11 +56,12 @@ shadow_gdf = shadow_gdf.to_crs(epsg=32636)
 
 print("-------------------------------------------------")
 
-Class_Shadow.analyze_coverage(osm_object.G, shadow_gdf, osm_object.Buildings, osm_object.combined_bounds)
-Class_Shadow.analyze_and_plot_coverage(osm_object.G, osm_object.Buildings, osm_object.combined_bounds)
+#Class_Shadow.analyze_coverage(osm_object.G, shadow_gdf, osm_object.Buildings, osm_object.combined_bounds)
+#Class_Shadow.analyze_and_plot_coverage(osm_object.G, osm_object.Buildings, osm_object.combined_bounds)
 
-
-origin_latlng = (31.2622, 34.8007)
-dest_latlng   = (31.2615, 34.7991)
+origin_latlng = osm_object.get_random_point_in_G()
+dest_latlng = osm_object.get_random_point_in_G()
+print(origin_latlng)
+print(dest_latlng)
 algo = Algorithmic(osm_object)
 algo.shortest_path_near_bgu_with_buildings(dest_latlng, origin_latlng)

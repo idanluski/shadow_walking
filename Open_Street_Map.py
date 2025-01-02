@@ -3,6 +3,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import LineString, Point
 import osmnx as ox
+import random
 
 
 class Open_Street_Map:
@@ -23,7 +24,10 @@ class Open_Street_Map:
         self.buildings_gdf = self.convert_geodata()
 
     def combine(self):
-        # Define combined bounds for full coverage
+        # Ensure buildings are reprojected to match the graph CRS
+        buildings_projected = self.Buildings.to_crs(self.crs)
+
+        # Define graph bounds based on node positions
         node_positions = [data for _, data in self.G.nodes(data=True)]
         graph_bounds = (
             min(node["x"] for node in node_positions),  # minx
@@ -31,12 +35,16 @@ class Open_Street_Map:
             max(node["x"] for node in node_positions),  # maxx
             max(node["y"] for node in node_positions),  # maxy
         )
-        building_bounds = self.Buildings.total_bounds
+
+        # Get bounds for buildings in the same CRS as the graph
+        building_bounds = buildings_projected.total_bounds
+
+        # Combine bounds
         combined_bounds = (
-            min(building_bounds[0], graph_bounds[0]),
-            min(building_bounds[1], graph_bounds[1]),
-            max(building_bounds[2], graph_bounds[2]),
-            max(building_bounds[3], graph_bounds[3])
+            min(building_bounds[0], graph_bounds[0]),  # minx
+            min(building_bounds[1], graph_bounds[1]),  # miny
+            max(building_bounds[2], graph_bounds[2]),  # maxx
+            max(building_bounds[3], graph_bounds[3])  # maxy
         )
         return combined_bounds
 
@@ -98,33 +106,52 @@ class Open_Street_Map:
 
     def find_nodes_in_G(self, dest, original):
         """
-         take 2 point from GPS and fines the nearest node in G
-         input : tuple contain (lat,lng)
+        Find nearest nodes in the graph for two points when the CRS of the input is the same as the graph's CRS.
+
+        Input:
+            dest: tuple of destination coordinates (x, y) in the same CRS as the graph.
+            original: tuple of origin coordinates (x, y) in the same CRS as the graph.
+
+        Output:
+            orig_node: Nearest node in the graph to the origin point.
+            dest_node: Nearest node in the graph to the destination point.
         """
+        # Extract coordinates
+        origin_x, origin_y = original
+        dest_x, dest_y = dest
 
-        # origin_latlng = (31.2622, 34.8007)
-        # dest_latlng   = (31.2615, 34.7991)
-        origin_latlng = original
-        dest_latlng = dest
+        # Validate coordinates against graph bounds
+        bounds = self.combined_bounds  # minx, miny, maxx, maxy
+        if not (bounds[0] <= origin_x <= bounds[2] and bounds[1] <= origin_y <= bounds[3]):
+            raise ValueError(f"Origin point ({origin_x}, {origin_y}) is outside the graph bounds.")
+        if not (bounds[0] <= dest_x <= bounds[2] and bounds[1] <= dest_y <= bounds[3]):
+            raise ValueError(f"Destination point ({dest_x}, {dest_y}) is outside the graph bounds.")
 
-        # In OSMnx, the graph is projected, but the function nearest_nodes()
-        # expects x=longitude, y=latitude in the graph’s coordinate system.
-        # For a projected graph, we need to first transform our lat/lng to EPSG:32636.
+        # Find nearest nodes
+        orig_node = self.get_nearest_node(x=origin_x, y=origin_y)
+        dest_node = self.get_nearest_node(x=dest_x, y=dest_y)
 
-        # Let's create a tiny GeoDataFrame with our origin/destination in WGS84:
+        return orig_node, dest_node
 
-        coords_gdf = gpd.GeoDataFrame(
-            geometry=[Point(origin_latlng[1], origin_latlng[0]),  # (lon, lat)
-                      Point(dest_latlng[1], dest_latlng[0])],
-            crs="EPSG:4326"
-        )
-        # Reproject to EPSG:32636
-        coords_gdf_32636 = coords_gdf.to_crs(epsg=32636)
-        # Extract x, y
-        origin_x_32636, origin_y_32636 = coords_gdf_32636.geometry.iloc[0].x, coords_gdf_32636.geometry.iloc[0].y
-        dest_x_32636, dest_y_32636 = coords_gdf_32636.geometry.iloc[1].x, coords_gdf_32636.geometry.iloc[1].y
+    def get_random_point_in_G(self):
+        """
+        Generate one random point within the bounds of the graph G.
+        """
+        # Get the graph bounds
 
-        # Now find nearest nodes in the projected graph
-        orig_node_32636 = self.get_nearest_node(x=origin_x_32636, y=origin_y_32636)
-        dest_node_32636 = self.get_nearest_node(x=dest_x_32636, y=dest_y_32636)
-        return orig_node_32636, dest_node_32636
+        graph_bounds = self.combined_bounds  # minx, miny, maxx, maxy
+        print("-----------------graph_bounds----------------------------")
+        print(graph_bounds)
+        while True:
+            # Generate random coordinates within the bounds
+            x = random.uniform(graph_bounds[0], graph_bounds[2])  # Between minx and maxx
+            y = random.uniform(graph_bounds[1], graph_bounds[3])  # Between miny and maxy
+
+            # Validate if the point is near any graph node
+            try:
+                self.get_nearest_node(x, y)  # Check if a valid node exists near this point
+                return x, y  # Return the valid random point
+            except Exception:
+                # If no valid node is found, continue generating another point
+                continue
+

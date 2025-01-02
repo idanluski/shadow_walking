@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely.geometry import Point
 from Open_Street_Map import Open_Street_Map
+import pandas as pd
 
 
 
 class Algorithmic:
     def __init__(self, open_object : Open_Street_Map):
         self.open_street_map_object = open_object
+
 
     def shortest_path_near_bgu_with_buildings(self, dest, original):
         """
@@ -44,7 +46,7 @@ class Algorithmic:
         # Easiest way: let OSMnx handle a "solution" using the original G for the folium route.
         # We'll demonstrate how to do that simply:
         route_map = self.open_street_map_object.plot_route_folium(route_nodes)
-        route_map.save("bgu_route.html")
+        #route_map.save("bgu_route.html")
         print("Folium map saved to bgu_route.html")
 
         # ----------------------------
@@ -52,7 +54,6 @@ class Algorithmic:
         # ----------------------------
         # Convert projected graph to GeoDataFrames
         nodes_gdf, edges_gdf = self.open_street_map_object.graph_to_gdfs()
-
 
         # Plot
         fig, ax = plt.subplots(figsize=(10,10))
@@ -71,17 +72,17 @@ class Algorithmic:
         #   (But note in a MultiDiGraph, route edges are pairs of consecutive route_nodes)
         route_edges = list(zip(route_nodes[:-1], route_nodes[1:]))
         route_edges_set = set(route_edges)  # for quick membership check
+        def is_route_edge(row):
+            u, v, k = row.name
+            return (u,v) in route_edges_set or (v,u) in route_edges_set
 
         # We'll create a mask for edges that are in the route
-        edges_gdf['is_route'] = edges_gdf.apply(lambda row:
-                                                (row['u'], row['v']) in route_edges_set or
-                                                (row['v'], row['u']) in route_edges_set, axis=1)
+        edges_gdf['is_route'] = edges_gdf.apply(is_route_edge, axis=1)
         edges_on_route = edges_gdf[edges_gdf['is_route'] == True]
         edges_on_route.plot(ax=ax, color='blue', linewidth=3, label='Route')
 
         # e) Add some legend / title
         ax.set_title("Ben-Gurion University Shortest Path (EPSG:32636)", fontsize=14)
-        ax.legend()
 
         plt.show()
 
