@@ -55,7 +55,8 @@ shadow_gdf = shadow_gdf.set_crs(epsg=32636)
 shadow_gdf = shadow_gdf.to_crs(epsg=32636)
 
 print("-------------------------------------------------")
-#osm_object.plot_graph_with_info()
+osm_object.plot_graph_with_node_numbers_only()
+osm_object.plot_graph_with_info()
 
 Class_Shadow.analyze_coverage(osm_object.G, shadow_gdf, osm_object.Buildings, osm_object.combined_bounds)
 #Class_Shadow.analyze_and_plot_coverage(osm_object.G, osm_object.Buildings, osm_object.combined_bounds)

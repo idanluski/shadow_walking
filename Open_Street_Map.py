@@ -181,11 +181,29 @@ class Open_Street_Map:
 
     def plot_graph_with_info(self):
         """
-        Plot the graph and display the number of nodes and edges.
+        Plot the graph with red nodes, white background, and edge lengths displayed.
         """
+        import matplotlib.pyplot as plt
+        from shapely.geometry import LineString
+
         # Get the number of nodes and edges
         num_nodes = len(self.G.nodes)
         num_edges = len(self.G.edges)
+
+        # Extract nodes and their positions
+        node_positions = {node: (data['x'], data['y']) for node, data in self.G.nodes(data=True)}
+
+        # Extract edges and their geometry
+        edge_geometries = []
+        for u, v, data in self.G.edges(data=True):
+            if 'geometry' in data:
+                edge_geometries.append((u, v, data['geometry'], data.get('length', None)))
+            else:
+                # If no geometry, create a straight LineString
+                x1, y1 = node_positions[u]
+                x2, y2 = node_positions[v]
+                line = LineString([(x1, y1), (x2, y2)])
+                edge_geometries.append((u, v, line, data.get('length', None)))
 
         # Create the plot
         fig, ax = ox.plot_graph(
@@ -194,19 +212,82 @@ class Open_Street_Map:
             node_size=10,
             edge_color="blue",
             edge_linewidth=0.5,
+            bgcolor="white",  # Set the background color to white
             show=False,
             close=False,
         )
 
-        # Add text to the plot
+        # Add edge lengths
+        for u, v, geometry, length in edge_geometries:
+            if length is not None:
+                # Get the midpoint of the edge geometry
+                if isinstance(geometry, LineString):
+                    midpoint = geometry.interpolate(0.5, normalized=True)
+                    mid_x, mid_y = midpoint.x, midpoint.y
+                else:
+                    # Fallback if no geometry
+                    mid_x, mid_y = (
+                        (node_positions[u][0] + node_positions[v][0]) / 2,
+                        (node_positions[u][1] + node_positions[v][1]) / 2,
+                    )
+
+                # Add text for edge length
+                ax.text(
+                    mid_x,
+                    mid_y,
+                    f"{length:.1f}m",  # Format length to 1 decimal place
+                    fontsize=6,
+                    color='black',
+                    ha='center',
+                    va='center',
+                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.7),
+                )
+
+        # Add total node and edge counts in the corner
         ax.text(
             0.05, 0.95,
             f"Nodes: {num_nodes}\nEdges: {num_edges}",
             transform=ax.transAxes,
             fontsize=12,
             verticalalignment="top",
-            bbox=dict(facecolor="white", alpha=0.7)
+            bbox=dict(facecolor="white", alpha=0.9),
         )
+
+        # Show the plot
+        plt.show()
+
+    def plot_graph_with_node_numbers_only(self):
+        """
+        Plot the graph with white background and display only the node numbers.
+        """
+        import matplotlib.pyplot as plt
+
+        # Extract nodes and their positions
+        node_positions = {node: (data['x'], data['y']) for node, data in self.G.nodes(data=True)}
+
+        # Create the plot
+        fig, ax = ox.plot_graph(
+            self.G,
+            node_color="none",  # Hide node dots
+            edge_color="blue",
+            edge_linewidth=0.5,
+            bgcolor="white",  # Set the background color to white
+            show=False,
+            close=False,
+        )
+
+        # Add node numbers
+        for node, (x, y) in node_positions.items():
+            ax.text(
+                x,
+                y,
+                str(node),  # Display the node number
+                fontsize=8,
+                color='black',
+                ha='center',
+                va='center',
+                bbox=dict(facecolor='white', edgecolor='black', alpha=0.7, boxstyle="round,pad=0.2"),
+            )
 
         # Show the plot
         plt.show()
