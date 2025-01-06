@@ -4,6 +4,8 @@ import geopandas as gpd
 from shapely.geometry import LineString, Point
 import osmnx as ox
 import random
+import folium
+import matplotlib.pyplot as plt
 
 
 class Open_Street_Map:
@@ -101,8 +103,30 @@ class Open_Street_Map:
         nodes_gdf, edges_gdf = ox.graph_to_gdfs(self.G, nodes=True, edges=True)
         return nodes_gdf, edges_gdf
 
-    def plot_route_folium(self, route_nodes, weight=5, color='blue' ):
-        return ox.plot_route_folium(self.G, route_nodes, weight=weight, color=color)
+    def plot_route_folium(self, route_nodes, weight=5, color='blue'):
+        # Extract the nodes and edges as GeoDataFrames
+        nodes, edges = ox.graph_to_gdfs(self.G)
+
+        # Get the coordinates of the route nodes
+        route_coords = [(nodes.loc[node]['y'], nodes.loc[node]['x']) for node in route_nodes]
+
+        # Create a folium map centered at the first coordinate
+        route_map = folium.Map(location=route_coords[0], zoom_start=14)
+
+        # Add the route as a polyline
+        folium.PolyLine(
+            route_coords,
+            weight=weight,
+            color=color,
+            opacity=0.8
+        ).add_to(route_map)
+
+        # Optionally, add markers for the start and end points
+        folium.Marker(route_coords[0], popup="Start", icon=folium.Icon(color="green")).add_to(route_map)
+        folium.Marker(route_coords[-1], popup="End", icon=folium.Icon(color="red")).add_to(route_map)
+
+        # Return the map object
+        return route_map
 
     def find_nodes_in_G(self, dest, original):
         """
@@ -155,3 +179,34 @@ class Open_Street_Map:
                 # If no valid node is found, continue generating another point
                 continue
 
+    def plot_graph_with_info(self):
+        """
+        Plot the graph and display the number of nodes and edges.
+        """
+        # Get the number of nodes and edges
+        num_nodes = len(self.G.nodes)
+        num_edges = len(self.G.edges)
+
+        # Create the plot
+        fig, ax = ox.plot_graph(
+            self.G,
+            node_color="red",
+            node_size=10,
+            edge_color="blue",
+            edge_linewidth=0.5,
+            show=False,
+            close=False,
+        )
+
+        # Add text to the plot
+        ax.text(
+            0.05, 0.95,
+            f"Nodes: {num_nodes}\nEdges: {num_edges}",
+            transform=ax.transAxes,
+            fontsize=12,
+            verticalalignment="top",
+            bbox=dict(facecolor="white", alpha=0.7)
+        )
+
+        # Show the plot
+        plt.show()

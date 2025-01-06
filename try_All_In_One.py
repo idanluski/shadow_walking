@@ -55,8 +55,9 @@ shadow_gdf = shadow_gdf.set_crs(epsg=32636)
 shadow_gdf = shadow_gdf.to_crs(epsg=32636)
 
 print("-------------------------------------------------")
+#osm_object.plot_graph_with_info()
 
-#Class_Shadow.analyze_coverage(osm_object.G, shadow_gdf, osm_object.Buildings, osm_object.combined_bounds)
+Class_Shadow.analyze_coverage(osm_object.G, shadow_gdf, osm_object.Buildings, osm_object.combined_bounds)
 #Class_Shadow.analyze_and_plot_coverage(osm_object.G, osm_object.Buildings, osm_object.combined_bounds)
 
 origin_latlng = osm_object.get_random_point_in_G()
@@ -65,3 +66,5 @@ print(origin_latlng)
 print(dest_latlng)
 algo = Algorithmic(osm_object)
 algo.shortest_path_near_bgu_with_buildings(dest_latlng, origin_latlng)
+Class_Shadow.make_new_weights(osm_object.G)
+algo.shortest_path_with_different_weights(dest_latlng, origin_latlng)

@@ -13,7 +13,6 @@ class Algorithmic:
     def __init__(self, open_object : Open_Street_Map):
         self.open_street_map_object = open_object
 
-
     def shortest_path_near_bgu_with_buildings(self, dest, original):
         """
         input : tuple contain (lat,lng)
@@ -83,8 +82,69 @@ class Algorithmic:
 
         # e) Add some legend / title
         ax.set_title("Ben-Gurion University Shortest Path (EPSG:32636)", fontsize=14)
-
+        ax.set_xlim([671000, 672000])
+        ax.set_ylim([3.45975e6, 3.46050e6])
         plt.show()
+
+    def shortest_path_with_different_weights(self, dest, original):
+        """
+        Compute and plot shortest paths based on four different weights, all in one plot with distinct colors.
+        """
+        # Find nearest nodes in the graph
+        orig_node_32636, dest_node_32636 = self.open_street_map_object.find_nodes_in_G(dest, original)
+        G = self.open_street_map_object.G
+
+        # Define weight names and corresponding colors
+        cost_names = [f"cost_{i}" for i in range(1, 5)]
+        colors = ['blue', 'green', 'red', 'orange']  # Unique colors for each route
+
+        # Initialize the Matplotlib plot
+        fig, ax = plt.subplots(figsize=(10, 10))
+
+        # Plot buildings and roads
+        self.open_street_map_object.buildings_gdf.plot(
+            ax=ax, color='lightgray', alpha=0.7, edgecolor='none', label='Buildings'
+        )
+        edges_gdf = self.open_street_map_object.graph_to_gdfs()[1]
+        edges_gdf.plot(ax=ax, color='black', linewidth=1, alpha=0.8, label='Roads')
+
+        # Loop through weights to calculate and plot each route
+        for cost_names, color in zip(cost_names, colors):
+            # Calculate the shortest path for the current weight
+            route_nodes = nx.shortest_path(G, orig_node_32636, dest_node_32636, weight=cost_names)
+            route_length = nx.shortest_path_length(G, orig_node_32636, dest_node_32636, weight=cost_names)
+            # Print route information
+            print(f"Weight: {cost_names}")
+            print(f"Route node IDs: {route_nodes}")
+
+            # Highlight the route
+            route_edges = list(zip(route_nodes[:-1], route_nodes[1:]))
+            route_edges_gdf = edges_gdf.loc[
+                edges_gdf.index.map(lambda edge: (edge[0], edge[1]) in route_edges or (edge[1], edge[0]) in route_edges)
+            ]
+            filtered_edges = edges_gdf[edges_gdf.index.map(lambda edge: (edge[0], edge[1]) in route_edges or (edge[1], edge[0]) in route_edges)]
+            edge_lengths = sum(filtered_edges['length'].tolist())
+            print(f"Route length: {edge_lengths}")
+            route_edges_gdf.plot(
+                ax=ax,
+                color=color,
+                linewidth=3,
+                label=f"Route ({cost_names})"
+            )
+
+        # Add title and legend for the combined plot
+        ax.set_title("Shortest Paths with Different Weights", fontsize=14)
+        #ax.legend()
+        ax.set_xlim([671000,672000])
+        ax.set_ylim([3.45975e6, 3.46050e6])
+        plt.show()
+
+        # Save all routes as interactive Folium maps
+        for weight_name, color in zip(cost_names, colors):
+            route_nodes = nx.shortest_path(G, orig_node_32636, dest_node_32636, weight=cost_names)
+            route_map = self.open_street_map_object.plot_route_folium(route_nodes, weight=5, color=color)
+            route_map.save(f"route_{cost_names}.html")
+            print(f"Folium map saved to route_{cost_names}.html")
 
 
 
