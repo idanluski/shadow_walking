@@ -4,7 +4,7 @@ from Open_Street_Map import Open_Street_Map
 from Class_Shadow import Class_Shadow
 from Algorithmica import Algorithmic
 
-PLOT = True
+
 sunloc = SunLocation()
 azimuth = sunloc.azimuth
 altitude = sunloc.altitude

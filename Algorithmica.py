@@ -26,6 +26,7 @@ class Algorithmic:
 
         # Now find nearest nodes in the projected graph
         orig_node_32636, dest_node_32636 = self.open_street_map_object.find_nodes_in_G(dest, original)
+        orig_node_32636, dest_node_32636 = 3664673537, 3664678549
         G = self.open_street_map_object.G
         # Shortest path by length (in meters)
         route_nodes = nx.shortest_path(G, orig_node_32636, dest_node_32636, weight='length')
@@ -82,8 +83,12 @@ class Algorithmic:
 
         # e) Add some legend / title
         ax.set_title("Ben-Gurion University Shortest Path (EPSG:32636)", fontsize=14)
+        ax.legend()
+
+        # Set limits to focus on the area of interest
         ax.set_xlim([671000, 672000])
         ax.set_ylim([3.45975e6, 3.46050e6])
+
         plt.show()
 
     def shortest_path_with_different_weights(self, dest, original):
@@ -92,6 +97,7 @@ class Algorithmic:
         """
         # Find nearest nodes in the graph
         orig_node_32636, dest_node_32636 = self.open_street_map_object.find_nodes_in_G(dest, original)
+        orig_node_32636, dest_node_32636 = 3664673537, 3664678549
         G = self.open_street_map_object.G
 
         # Define weight names and corresponding colors
@@ -123,7 +129,8 @@ class Algorithmic:
                 edges_gdf.index.map(lambda edge: (edge[0], edge[1]) in route_edges or (edge[1], edge[0]) in route_edges)
             ]
             filtered_edges = edges_gdf[edges_gdf.index.map(lambda edge: (edge[0], edge[1]) in route_edges or (edge[1], edge[0]) in route_edges)]
-            edge_lengths = sum(filtered_edges['length'].tolist())
+            edges_lnegth = filtered_edges['length'].tolist()
+            edge_lengths = sum(list(set(edges_lnegth)))
             print(f"Route length: {edge_lengths}")
             route_edges_gdf.plot(
                 ax=ax,
